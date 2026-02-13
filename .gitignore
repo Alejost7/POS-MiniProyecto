@@ -1,0 +1,44 @@
+# --- Laravel Core ---
+/vendor/
+.env
+.env.backup
+.env.production
+composer.lock
+package-lock.json
+yarn.lock
+/storage/*.key
+/public/storage
+/public/hot
+
+# --- Frontend (React + Vite + TS) ---
+/node_modules/
+/dist/
+/public/build/
+.pnpm-debug.log*
+
+# --- Typescript & IDEs ---
+.tscache/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# --- Logs y Caché ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/auth.json
+/.phpunit.result.cache
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*.php
+/storage/logs/*.log
+
+# --- Pruebas y Cobertura ---
+/.serverless/
+/node_modules
+/vendor
