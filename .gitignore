@@ -1,4 +1,3 @@
-# --- Laravel Core ---
 /vendor/
 .env
 .env.backup
@@ -42,3 +41,9 @@ yarn-error.log*
 /.serverless/
 /node_modules
 /vendor
+
+# API local secrets
+api/config/database.local.php
+
+# --- Otros ---
+*.sql 
