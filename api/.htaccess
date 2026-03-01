@@ -1,0 +1,20 @@
+Options -Indexes
+ServerSignature Off
+
+# Bloquea acceso directo a archivos sensibles de configuracion
+<FilesMatch "^(bootstrap\.php|database\.php|database\.local\.php|\.env)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquea archivos ocultos y de respaldo
+<FilesMatch "(^\.|\.bak$|\.sql$|\.ini$|composer\.(json|lock)$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+</IfModule>
