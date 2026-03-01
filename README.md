@@ -3,7 +3,7 @@ Miniproyecto de Procesos y Diseno de Software para un sistema POS web.
 
 ## Estado del proyecto
 
-### Historias de usuario implementadas
+### Historias de usuario implementadas (Sprint 1)
 - `HU-001` Autenticacion de usuarios (login con sesion por cookie y persistencia al recargar).
 - `HU-002` Gestion de roles y permisos.
 - `HU-003` Diseño de Prototipo de Alta Fidelidad (UI/UX)
