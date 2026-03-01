@@ -47,7 +47,6 @@ Tablas principales:
 
 ### Requisitos adicionales aplicados al proyecto
 Para las HU actuales, se recomienda tener en `producto`:
-- `codigo_barras` unico.
 - `estado` para eliminacion logica (`activo` / `inactivo`).
 
 Ejemplo de cambios:
