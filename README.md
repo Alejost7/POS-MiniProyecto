@@ -13,6 +13,16 @@ Miniproyecto de Procesos y Diseno de Software para un sistema POS web.
 - `HU-007` Visualizacion de inventario con busqueda y eliminacion logica.
 - `HU-008` Creacion de usuarios con asignacion de rol y validaciones de unicidad.
 
+### Historias de usuario implementadas (Sprint 2)
+- `HU-009` Automatización de correos para confirmar venta / factura del cliente 
+- `HU-010` Sistema de cliente recurrente
+- `HU-011` Histórico de ventas por caja
+- `HU-012` Módulo de Ventas (Carrito de Compras) 
+- `HU-013` Generación de Comprobante de Pago (PDF) 
+- `HU-014` Edición y Actualización de Productos
+- `HU-015` Dashboard de Métricas y Reportes Visuales
+- `HU-016` Gestión de Categorías y Alertas de Stock Bajo
+
 
 ## Stack
 - Backend: PHP puro (API REST simple).
