@@ -1,5 +1,5 @@
 # POS-MiniProyecto
-Miniproyecto de Procesos y Diseno de Software para un sistema POS web.
+Miniproyecto de Procesos y Diseño de Software para un sistema POS web.
 
 ## Estado del proyecto
 
@@ -234,18 +234,10 @@ Pasos recomendados:
 4. Verificar credenciales de `database.local.php` y `mail.local.php`.
 5. Confirmar que `api/config/.htaccess` este presente.
 
-## Seguridad
+## Seguridad (para proyectos reales)
 - No subir credenciales reales a Git.
 - Mantener `api/config/database.local.php` fuera del repositorio.
 - Mantener `api/config/mail.local.php` fuera del repositorio.
 - Bloquear acceso web a `api/config/` con `.htaccess`.
-- Usar remitentes de correo reales y activos en Hostinger.
-- El primer usuario administrador se registra manualmente en la base de datos o desde una cuenta ya administradora.
-
-## Verificacion recomendada post-despliegue
-- Probar `GET /api/auth/me.php`.
-- Iniciar sesion y validar persistencia al recargar.
-- Crear categoria, producto, cliente y compra.
-- Registrar una venta y confirmar descuento de stock.
-- Revisar ticket imprimible.
-- Verificar respuesta `email.sent` en `POST /api/ventas/create.php`.
+- Usar remitentes de correo reales y activos.
+- El primer usuario administrador se registra manualmente en la base de datos.
