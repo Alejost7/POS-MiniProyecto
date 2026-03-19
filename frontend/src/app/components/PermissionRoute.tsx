@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router";
 import { ReactNode } from "react";
 import { Permission, useAuth } from "../auth/AuthContext";
+import { AppLoader } from "./AppLoader";
 
 export function PermissionRoute({
   permission,
@@ -13,7 +14,7 @@ export function PermissionRoute({
   const location = useLocation();
 
   if (isInitializing) {
-    return null;
+    return <AppLoader label="Cargando modulo..." />;
   }
 
   if (!can(permission)) {

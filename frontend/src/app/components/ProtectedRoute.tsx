@@ -1,12 +1,13 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../auth/AuthContext";
+import { AppLoader } from "./AppLoader";
 
 export function ProtectedRoute() {
   const { isAuthenticated, isInitializing } = useAuth();
   const location = useLocation();
 
   if (isInitializing) {
-    return null;
+    return <AppLoader label="Validando sesion..." />;
   }
 
   if (!isAuthenticated) {

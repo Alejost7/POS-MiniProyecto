@@ -29,7 +29,7 @@ export function Layout() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-8 h-8 text-teal-600" />
-              <h1 className="text-xl font-bold text-gray-800">M&H Software House</h1>
+              <h1 className="text-xl font-bold text-gray-800">M&H Super Market</h1>
             </div>
             <div className="flex gap-2 items-center">
               {navItems.map((item) => {

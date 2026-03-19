@@ -5,32 +5,27 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 api_bootstrap(['POST']);
 
-$user = api_require_auth();
-$roleName = strtolower(trim((string)($user['nombre_rol'] ?? '')));
-$isAdmin = str_contains($roleName, 'admin') || (int)($user['id_rol'] ?? 0) === 1;
-
-if (!$isAdmin) {
-    api_json_response(['error' => 'No autorizado para registrar productos'], 403);
-}
+api_require_admin();
 
 $payload = api_read_json_body();
 
-$codigo = trim((string)($payload['codigo'] ?? $payload['sku'] ?? $payload['codigo_barras'] ?? ''));
 $nombre = trim((string)($payload['nombre_producto'] ?? $payload['nombre'] ?? ''));
 $precioRaw = $payload['precio_venta'] ?? $payload['precio'] ?? null;
 $stockRaw = $payload['stock_inicial'] ?? $payload['stock_actual'] ?? $payload['stock'] ?? null;
 $marca = trim((string)($payload['marca'] ?? ''));
 $descripcion = trim((string)($payload['descripcion'] ?? ''));
+$codigoBarras = trim((string)($payload['codigo_barras'] ?? $payload['codigo'] ?? ''));
 $idProveedorRaw = $payload['id_proveedor'] ?? null;
+$idCategoriaRaw = $payload['id_categoria'] ?? null;
 
-if ($codigo === '' || $nombre === '' || $precioRaw === null || $stockRaw === null) {
+if ($nombre === '' || $precioRaw === null || $stockRaw === null) {
     api_json_response([
-        'error' => 'Campos obligatorios: codigo, nombre, precio_venta y stock_inicial',
+        'error' => 'Campos obligatorios: nombre, precio_venta y stock_inicial',
     ], 400);
 }
 
 if (!is_numeric((string)$precioRaw)) {
-    api_json_response(['error' => 'El precio de venta debe ser numérico'], 400);
+    api_json_response(['error' => 'El precio de venta debe ser numerico'], 400);
 }
 
 $precio = (float)$precioRaw;
@@ -40,7 +35,7 @@ if ($precio < 0) {
 
 $stock = filter_var($stockRaw, FILTER_VALIDATE_INT);
 if ($stock === false) {
-    api_json_response(['error' => 'El stock inicial debe ser un número entero'], 400);
+    api_json_response(['error' => 'El stock inicial debe ser un numero entero'], 400);
 }
 
 if ($stock < 0) {
@@ -50,7 +45,6 @@ if ($stock < 0) {
 $idProveedor = null;
 if ($idProveedorRaw !== null && $idProveedorRaw !== '') {
     $validatedProvider = filter_var($idProveedorRaw, FILTER_VALIDATE_INT);
-
     if ($validatedProvider === false || $validatedProvider <= 0) {
         api_json_response(['error' => 'id_proveedor debe ser entero positivo'], 400);
     }
@@ -58,82 +52,116 @@ if ($idProveedorRaw !== null && $idProveedorRaw !== '') {
     $idProveedor = $validatedProvider;
 }
 
+$idCategoria = null;
+if ($idCategoriaRaw !== null && $idCategoriaRaw !== '') {
+    $validatedCategory = filter_var($idCategoriaRaw, FILTER_VALIDATE_INT);
+    if ($validatedCategory === false || $validatedCategory <= 0) {
+        api_json_response(['error' => 'id_categoria debe ser entero positivo'], 400);
+    }
+
+    $idCategoria = $validatedCategory;
+}
+
+if ($idCategoria === null) {
+    api_json_response(['error' => 'id_categoria es obligatorio'], 400);
+}
+
 try {
     $conn = api_require_database();
 
-    $columnRows = $conn->query('SHOW COLUMNS FROM producto')->fetchAll(PDO::FETCH_ASSOC);
-    $productColumns = array_map(
-        static fn(array $row): string => (string)$row['Field'],
-        $columnRows
+    $barcodeColumnStmt = $conn->query(
+        "SELECT IS_NULLABLE
+         FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'producto'
+           AND COLUMN_NAME = 'codigo_barras'
+         LIMIT 1"
     );
+    $barcodeColumn = $barcodeColumnStmt->fetch(PDO::FETCH_ASSOC);
+    $hasBarcodeColumn = $barcodeColumn !== false;
+    $barcodeAllowsNull = $hasBarcodeColumn && strtoupper((string)$barcodeColumn['IS_NULLABLE']) === 'YES';
 
-    $codeColumn = null;
-    foreach (['sku', 'codigo', 'codigo_barra', 'codigo_barras', 'barcode'] as $candidate) {
-        if (in_array($candidate, $productColumns, true)) {
-            $codeColumn = $candidate;
-            break;
+    if ($idProveedor !== null) {
+        $providerStmt = $conn->prepare('SELECT rut_proveedor FROM proveedor WHERE rut_proveedor = :id LIMIT 1');
+        $providerStmt->execute([':id' => $idProveedor]);
+        if (!$providerStmt->fetch(PDO::FETCH_ASSOC)) {
+            api_json_response(['error' => 'El proveedor indicado no existe'], 400);
         }
     }
 
-    if ($codeColumn === null) {
-        api_json_response([
-            'error' => 'La tabla producto no tiene columna para código único (ej: sku o codigo).',
-        ], 422);
+    if ($idCategoria !== null) {
+        $categoryStmt = $conn->prepare('SELECT id_categoria FROM categoria WHERE id_categoria = :id LIMIT 1');
+        $categoryStmt->execute([':id' => $idCategoria]);
+        if (!$categoryStmt->fetch(PDO::FETCH_ASSOC)) {
+            api_json_response(['error' => 'La categoria indicada no existe'], 400);
+        }
     }
 
-    $existsStmt = $conn->prepare("SELECT id_producto FROM producto WHERE {$codeColumn} = :codigo LIMIT 1");
-    $existsStmt->execute([':codigo' => $codigo]);
-
-    if ($existsStmt->fetch(PDO::FETCH_ASSOC)) {
-        api_json_response(['error' => 'El código del producto ya existe'], 409);
+    if ($hasBarcodeColumn && $codigoBarras === '' && !$barcodeAllowsNull) {
+        api_json_response(['error' => 'codigo_barras es obligatorio en esta base de datos'], 400);
     }
 
-    $insertColumns = [$codeColumn, 'nombre_producto', 'precio_venta', 'stock_actual'];
-    $insertPlaceholders = [':codigo', ':nombre_producto', ':precio_venta', ':stock_actual'];
+    $columns = [
+        'nombre_producto',
+        'marca',
+        'precio_venta',
+        'stock_actual',
+        'descripcion',
+        'id_proveedor',
+        'id_categoria',
+    ];
+    $placeholders = [
+        ':nombre_producto',
+        ':marca',
+        ':precio_venta',
+        ':stock_actual',
+        ':descripcion',
+        ':id_proveedor',
+        ':id_categoria',
+    ];
     $insertParams = [
-        ':codigo' => $codigo,
         ':nombre_producto' => $nombre,
+        ':marca' => $marca !== '' ? $marca : null,
         ':precio_venta' => $precio,
         ':stock_actual' => $stock,
+        ':descripcion' => $descripcion !== '' ? $descripcion : null,
+        ':id_proveedor' => $idProveedor,
+        ':id_categoria' => $idCategoria,
     ];
 
-    if (in_array('marca', $productColumns, true)) {
-        $insertColumns[] = 'marca';
-        $insertPlaceholders[] = ':marca';
-        $insertParams[':marca'] = ($marca === '') ? null : $marca;
+    if ($hasBarcodeColumn) {
+        $columns[] = 'codigo_barras';
+        $placeholders[] = ':codigo_barras';
+        $insertParams[':codigo_barras'] = $codigoBarras !== '' ? $codigoBarras : null;
     }
 
-    if (in_array('descripcion', $productColumns, true)) {
-        $insertColumns[] = 'descripcion';
-        $insertPlaceholders[] = ':descripcion';
-        $insertParams[':descripcion'] = ($descripcion === '') ? null : $descripcion;
-    }
-
-    if (in_array('id_proveedor', $productColumns, true)) {
-        $insertColumns[] = 'id_proveedor';
-        $insertPlaceholders[] = ':id_proveedor';
-        $insertParams[':id_proveedor'] = $idProveedor;
-    }
-
-    $sql = sprintf(
-        'INSERT INTO producto (%s) VALUES (%s)',
-        implode(', ', $insertColumns),
-        implode(', ', $insertPlaceholders)
+    $insertStmt = $conn->prepare(
+        sprintf(
+            'INSERT INTO producto (%s) VALUES (%s)',
+            implode(', ', $columns),
+            implode(', ', $placeholders)
+        )
     );
-
-    $insertStmt = $conn->prepare($sql);
     $insertStmt->execute($insertParams);
 
     api_json_response([
         'message' => 'Producto registrado correctamente',
         'producto' => [
             'id_producto' => (int)$conn->lastInsertId(),
-            'codigo' => $codigo,
             'nombre_producto' => $nombre,
+            'marca' => $marca !== '' ? $marca : null,
             'precio_venta' => $precio,
             'stock_actual' => $stock,
+            'descripcion' => $descripcion !== '' ? $descripcion : null,
+            'id_proveedor' => $idProveedor,
+            'id_categoria' => $idCategoria,
+            'codigo_barras' => $codigoBarras !== '' ? $codigoBarras : null,
         ],
     ], 201);
 } catch (Throwable $e) {
-    api_json_response(['error' => 'Error interno al registrar producto'], 500);
+    error_log('api/productos/create.php: ' . $e->getMessage());
+    api_json_response([
+        'error' => 'Error interno al registrar producto',
+        'detail' => $e->getMessage(),
+    ], 500);
 }

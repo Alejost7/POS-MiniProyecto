@@ -18,44 +18,33 @@ if ($idProducto === false || $idProducto <= 0) {
 try {
     $conn = api_require_database();
 
-    $columnRows = $conn->query('SHOW COLUMNS FROM producto')->fetchAll(PDO::FETCH_ASSOC);
-    $productColumns = array_map(
-        static fn(array $row): string => (string)$row['Field'],
-        $columnRows
-    );
-
-    if (!in_array('estado', $productColumns, true)) {
-        api_json_response([
-            'error' => 'La tabla producto no tiene columna estado para eliminacion logica',
-            'hint' => "ALTER TABLE producto ADD COLUMN estado ENUM('activo','inactivo') NOT NULL DEFAULT 'activo'",
-        ], 422);
-    }
-
-    $stmt = $conn->prepare(
-        "UPDATE producto
-         SET estado = 'inactivo'
-         WHERE id_producto = :id_producto
-           AND (estado IS NULL OR estado <> 'inactivo')"
-    );
-    $stmt->execute([':id_producto' => $idProducto]);
-
-    if ($stmt->rowCount() > 0) {
-        api_json_response([
-            'message' => 'Producto marcado como inactivo',
-            'id_producto' => $idProducto,
-        ]);
-    }
-
-    $check = $conn->prepare('SELECT id_producto, estado FROM producto WHERE id_producto = :id_producto LIMIT 1');
-    $check->execute([':id_producto' => $idProducto]);
-    $producto = $check->fetch(PDO::FETCH_ASSOC);
-
-    if (!$producto) {
+    $productStmt = $conn->prepare('SELECT id_producto FROM producto WHERE id_producto = :id LIMIT 1');
+    $productStmt->execute([':id' => $idProducto]);
+    if (!$productStmt->fetch(PDO::FETCH_ASSOC)) {
         api_json_response(['error' => 'Producto no encontrado'], 404);
     }
 
+    $detailStmt = $conn->prepare('SELECT COUNT(*) FROM detalle_venta WHERE id_producto = :id');
+    $detailStmt->execute([':id' => $idProducto]);
+    $saleReferences = (int)$detailStmt->fetchColumn();
+
+    $purchaseStmt = $conn->prepare('SELECT COUNT(*) FROM registro_adquisiciones WHERE id_producto = :id');
+    $purchaseStmt->execute([':id' => $idProducto]);
+    $purchaseReferences = (int)$purchaseStmt->fetchColumn();
+
+    if ($saleReferences > 0 || $purchaseReferences > 0) {
+        api_json_response([
+            'error' => 'No se puede eliminar el producto porque tiene movimientos asociados',
+            'detalle_venta' => $saleReferences,
+            'registro_adquisiciones' => $purchaseReferences,
+        ], 409);
+    }
+
+    $deleteStmt = $conn->prepare('DELETE FROM producto WHERE id_producto = :id');
+    $deleteStmt->execute([':id' => $idProducto]);
+
     api_json_response([
-        'message' => 'El producto ya estaba inactivo',
+        'message' => 'Producto eliminado correctamente',
         'id_producto' => $idProducto,
     ]);
 } catch (Throwable $e) {

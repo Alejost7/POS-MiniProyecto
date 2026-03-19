@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 import { ShoppingCart } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+import { AppLoader } from "../components/AppLoader";
 
 export default function Login() {
   const { isAuthenticated, login, defaultPath, isInitializing } = useAuth();
@@ -15,7 +16,7 @@ export default function Login() {
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
 
   if (isInitializing) {
-    return null;
+    return <AppLoader label="Preparando acceso..." />;
   }
 
   if (isAuthenticated) {

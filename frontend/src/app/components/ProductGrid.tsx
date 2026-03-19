@@ -1,37 +1,47 @@
-import { Plus } from 'lucide-react';
+import { Package, Plus } from "lucide-react";
 
-interface Product {
+export interface CatalogProduct {
   id: string;
   name: string;
   price: number;
-  category: string;
+  brand: string | null;
+  stock: number;
 }
 
 interface ProductGridProps {
-  products: Product[];
-  onAddToCart: (product: Product) => void;
+  products: CatalogProduct[];
+  onAddToCart: (product: CatalogProduct) => void;
 }
 
 export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
+  if (products.length === 0) {
+    return (
+      <div className="py-12 text-center text-gray-400">
+        <Package className="mx-auto mb-3 h-16 w-16 opacity-30" />
+        <p>No hay productos disponibles</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
       {products.map((product) => (
         <button
           key={product.id}
           onClick={() => onAddToCart(product)}
-          className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow text-left group"
+          disabled={product.stock <= 0}
+          className="group rounded-lg bg-white p-4 text-left shadow-md transition-shadow hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <div className="flex flex-col h-full">
+          <div className="flex h-full flex-col">
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-800 mb-1">{product.name}</h3>
-              <p className="text-sm text-gray-500 mb-2">{product.category}</p>
+              <h3 className="mb-1 font-semibold text-gray-800">{product.name}</h3>
+              <p className="mb-2 text-sm text-gray-500">{product.brand || "Sin marca"}</p>
+              <p className="text-xs text-gray-400">Stock: {product.stock}</p>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-teal-600">
-                ${product.price.toFixed(2)}
-              </span>
-              <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center group-hover:bg-teal-600 transition-colors">
-                <Plus className="w-4 h-4 text-white" />
+              <span className="text-lg font-bold text-teal-600">${product.price.toFixed(2)}</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500 transition-colors group-hover:bg-teal-600">
+                <Plus className="h-4 w-4 text-white" />
               </div>
             </div>
           </div>
